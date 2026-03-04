@@ -12,7 +12,7 @@ load_dotenv()
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
 # ID пользователя которому отвечаем гифкой
-TARGET_USER_ID = 5263879474  
+TARGET_USER_ID = 246959057  
 
 # file_id гифки
 GIF_FILE_ID = "CgACAgIAAxkBAAFDzphpqBhs98iDDaVLT3lihB3ITR1guwACGZcAAgIQGUtNaOuySJMIDToE"
