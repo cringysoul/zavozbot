@@ -12,7 +12,7 @@ load_dotenv()
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
 # ID пользователя которому отвечаем гифкой
-TARGET_USER_ID = 246959057  
+TARGET_USER_ID = 5263879474 
 
 # file_id гифки
 GIF_FILE_ID = "CgACAgIAAxkBAAFDzphpqBhs98iDDaVLT3lihB3ITR1guwACGZcAAgIQGUtNaOuySJMIDToE"
@@ -39,9 +39,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
 
-    # Гифка раз в 10 сообщений для нужного пользователя
+    # Гифка раз в 4 сообщений для нужного пользователя
     if update.message.from_user and update.message.from_user.id == TARGET_USER_ID:
-        if random.randint(1, 10) == 1:
+        if random.randint(1, 4) == 1:
             await update.message.reply_animation(
                 animation=GIF_FILE_ID,
                 reply_to_message_id=update.message.message_id
