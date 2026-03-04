@@ -3,7 +3,7 @@ import re
 import random
 import asyncio
 from dotenv import load_dotenv
-from telegram import Update
+from telegram import Update, ReactionTypeEmoji
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
 import yt_dlp
@@ -24,6 +24,8 @@ GIF_FILES = [
 GIF_FILES_2 = [
     "CgACAgIAAxkBAAFD2mlpqH5Qrh_vFdkM_rbmUEJP3sJu6gAC3HYAAkciUEi9sy6F7yG9WToE",
 ]
+
+REACTIONS = ["🔥", "❤️", "😳", "👀", "💀", "🤡", "🤣", "🤝", "👍"]
 
 def is_valid_url(text):
     pattern = r'(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|instagram\.com/reel|twitter\.com|x\.com|youtube\.com|youtu\.be)'
@@ -46,6 +48,15 @@ def download_video(url: str):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
+
+    # Реакция на любое сообщение с шансом 5%
+    if random.randint(1, 100) <= 5:
+        try:
+            await update.message.set_reaction(
+                [ReactionTypeEmoji(emoji=random.choice(REACTIONS))]
+            )
+        except Exception:
+            pass
 
     # Гифка для наиля
     if update.message.from_user and update.message.from_user.id == TARGET_USER_ID:
