@@ -39,9 +39,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
 
-    # Гифка раз в 4 сообщений для нужного пользователя
+    # Гифка с шансом 13%
     if update.message.from_user and update.message.from_user.id == TARGET_USER_ID:
-        if random.randint(1, 4) == 1:
+        if random.randint(1, 100) <= 13:
             await update.message.reply_animation(
                 animation=GIF_FILE_ID,
                 reply_to_message_id=update.message.message_id
