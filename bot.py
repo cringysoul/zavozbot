@@ -15,7 +15,10 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 TARGET_USER_ID = 5263879474 
 
 # file_id гифки
-GIF_FILE_ID = "CgACAgIAAxkBAAFDzphpqBhs98iDDaVLT3lihB3ITR1guwACGZcAAgIQGUtNaOuySJMIDToE"
+GIF_FILES = [
+    "CgACAgIAAxkBAAFDzphpqBhs98iDDaVLT3lihB3ITR1guwACGZcAAgIQGUtNaOuySJMIDToE",
+    "CgACAgIAAxkBAAFD2ippqHrFSlvHfAABVctvgHyswu5uSVEAAniVAAKe3PlIJ3fVLt_zTa86BA",
+]
 
 def is_valid_url(text):
     pattern = r'(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|instagram\.com/reel|twitter\.com|x\.com|youtube\.com|youtu\.be)'
@@ -39,11 +42,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
 
-    # Гифка с шансом 13%
+    # Гифка с шансом 15%
     if update.message.from_user and update.message.from_user.id == TARGET_USER_ID:
-        if random.randint(1, 100) <= 13:
+        if random.randint(1, 100) <= 15:
             await update.message.reply_animation(
-                animation=GIF_FILE_ID,
+                animation=random.choice(GIF_FILES),
                 reply_to_message_id=update.message.message_id
             )
 
