@@ -25,7 +25,7 @@ GIF_FILES_2 = [
     "CgACAgIAAxkBAAFD2mlpqH5Qrh_vFdkM_rbmUEJP3sJu6gAC3HYAAkciUEi9sy6F7yG9WToE",
 ]
 
-REACTIONS = ["🔥", "😳", "👀", "💀", "🤡", "🤣", "🤝"]
+REACTIONS = ["🔥", "😳", "👀", "💀", "🤡", "🥀", "🍆"]
 
 def is_valid_url(text):
     pattern = r'(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|instagram\.com/reel|twitter\.com|x\.com|youtube\.com|youtu\.be)'
@@ -49,8 +49,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
 
-    # Реакция на любое сообщение с шансом 5%
-    if random.randint(1, 100) <= 5:
+    # Реакция на любое сообщение с шансом 9%
+    if random.randint(1, 100) <= 9:
         try:
             await update.message.set_reaction(
                 [ReactionTypeEmoji(emoji=random.choice(REACTIONS))]
@@ -66,9 +66,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_to_message_id=update.message.message_id
             )
 
-    # Гифка для яны 2%
+    # Гифка для яны 5%
     if update.message.from_user and update.message.from_user.id == TARGET_USER_ID_2:
-        if random.randint(1, 100) <= 2:
+        if random.randint(1, 100) <= 5:
             await update.message.reply_animation(
                 animation=random.choice(GIF_FILES_2),
                 reply_to_message_id=update.message.message_id
