@@ -58,9 +58,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-    # Гифка для наиля 8%
+    # Гифка для наиля 14%
     if update.message.from_user and update.message.from_user.id == TARGET_USER_ID:
-        if random.randint(1, 100) <= 8:
+        if random.randint(1, 100) <= 14:
             await update.message.reply_animation(
                 animation=random.choice(GIF_FILES),
                 reply_to_message_id=update.message.message_id
