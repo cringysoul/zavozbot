@@ -25,7 +25,7 @@ GIF_FILES_2 = [
     "CgACAgIAAxkBAAFD2mlpqH5Qrh_vFdkM_rbmUEJP3sJu6gAC3HYAAkciUEi9sy6F7yG9WToE",
 ]
 
-REACTIONS = ["🔥", "😳", "👀", "💀", "🤡", "🥀", "🍆"]
+REACTIONS = ["🔥", "👀", "🤡", "💯"]
 
 def is_valid_url(text):
     pattern = r'(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|instagram\.com/reel|twitter\.com|x\.com|youtube\.com|youtu\.be)'
@@ -58,9 +58,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-    # Гифка для наиля 16%
+    # Гифка для наиля 8%
     if update.message.from_user and update.message.from_user.id == TARGET_USER_ID:
-        if random.randint(1, 100) <= 16:
+        if random.randint(1, 100) <= 8:
             await update.message.reply_animation(
                 animation=random.choice(GIF_FILES),
                 reply_to_message_id=update.message.message_id
