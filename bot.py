@@ -98,7 +98,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     chat_id = update.message.chat_id
     message_counter[chat_id] += 1
-    if message_counter[chat_id] >= 150:
+    if message_counter[chat_id] >= 10:
         message_counter[chat_id] = 0
         await update.message.reply_text("а я считаю это желтуха")
 
