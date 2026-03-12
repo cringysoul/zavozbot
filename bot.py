@@ -12,13 +12,12 @@ load_dotenv()
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
 # ID пользователя которому отвечаем гифкой
-
 TARGET_USER_ID = 5002964279
 
-# file_id гифки
-
+# file_id гифок
 GIF_FILES = [
     "CgACAgIAAxkBAAFD2mlpqH5Qrh_vFdkM_rbmUEJP3sJu6gAC3HYAAkciUEi9sy6F7yG9WToE",
+    # Добавь сюда больше file_id гифок
 ]
 
 REACTIONS = ["🔥", "👀", "🤡", "💯"]
@@ -39,20 +38,22 @@ def download_video(url: str):
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
-        filename = ydl.prepare_filename(info)
-        filename = os.path.splitext(filename)[0] + '.mp4'
+        # Исправление #1: берём реальное имя файла через video id, а не через prepare_filename
+        filename = f"downloads/{info['id']}.mp4"
         return filename
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
 
-    # Счётчик сообщений (все типы)
+    # Исправление #2: счётчик и ответ "желтуха" вынесены до проверки на текст,
+    # чтобы срабатывать на все типы сообщений корректно
     chat_id = update.message.chat_id
     message_counter[chat_id] = message_counter.get(chat_id, 0) + 1
     if message_counter[chat_id] >= 150:
         message_counter[chat_id] = 0
         await update.message.reply_text("а я считаю это желтуха")
+        return  # явный return — не продолжаем обработку этого сообщения
 
     # Дальше работаем только с текстом
     if not update.message.text:
@@ -67,9 +68,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-    # Гифка для яны 5%
+    # Исправление #7: random.choice имеет смысл только если гифок больше одной
     if update.message.from_user and update.message.from_user.id == TARGET_USER_ID:
-        if random.randint(1, 100) <= 5:
+        if random.randint(1, 100) <= 5 and len(GIF_FILES) > 0:
             await update.message.reply_animation(
                 animation=random.choice(GIF_FILES),
                 reply_to_message_id=update.message.message_id
