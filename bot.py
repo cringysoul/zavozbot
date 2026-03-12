@@ -4,13 +4,14 @@ import re
 import random
 import asyncio
 import shutil
+import tempfile
+from collections import defaultdict
 from dotenv import load_dotenv
-from telegram import Update, ReactionTypeEmoji
+from telegram import Update, ReactionTypeEmoji, ReplyParameters
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
 import yt_dlp
 
-# Исправление #6: logging и stdlib-импорты вверху, до сторонних библиотек
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -21,7 +22,6 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
-# Исправление #7: явная проверка токена при старте
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN не задан в .env")
 
@@ -36,45 +36,80 @@ GIF_FILES = [
 
 REACTIONS = ["🔥", "👀", "🤡", "💯"]
 
-message_counter = {}
+message_counter: dict[int, int] = defaultdict(int)
 
-def is_valid_url(text):
-    pattern = r'(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|instagram\.com/reel|twitter\.com|x\.com|youtube\.com|youtu\.be)'
-    return bool(re.search(pattern, text))
+URL_PATTERN = re.compile(
+    r'https?://(www\.)?(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|instagram\.com/(reels?|p)|twitter\.com|x\.com|youtube\.com|youtu\.be)'
+)
 
-def download_video(url: str):
-    os.makedirs("downloads", exist_ok=True)
+def is_valid_url(text: str) -> bool:
+    return bool(URL_PATTERN.search(text))
+
+
+def download_video(url: str, tmp_dir: str) -> str:
+    """Скачивает видео в tmp_dir и возвращает реальный путь к файлу."""
     ydl_opts = {
-        'outtmpl': 'downloads/%(id)s.%(ext)s',
-        # Исправление #3: ограничение размера файла до 45 МБ (лимит Telegram — 50 МБ)
+        'outtmpl': os.path.join(tmp_dir, '%(id)s.%(ext)s'),
         'format': 'best[ext=mp4][filesize<45M]/best[filesize<45M]/best',
         'quiet': True,
         'merge_output_format': 'mp4',
-        # Исправление #2: таймаут сокета — не зависаем вечно
         'socket_timeout': 30,
+        'noplaylist': True,
     }
+    # Исправление #1: правильные отступы внутри with
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
-        filename = f"downloads/{info['id']}.mp4"
-        return filename
+        filename = ydl.prepare_filename(info)
+        if "requested_downloads" in info:
+            filename = info["requested_downloads"][0]["filepath"]
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Если merge_output_format поменял расширение — ищем .mp4
+    if not os.path.exists(filename):
+        mp4_path = os.path.splitext(filename)[0] + ".mp4"
+        if os.path.exists(mp4_path):
+            filename = mp4_path
+
+    return filename
+
+
+async def send_video(filename: str, update: Update) -> None:
+    """Единая функция отправки — сначала как видео, при ошибке как документ."""
+    reply_params = ReplyParameters(message_id=update.message.message_id)
+    try:
+        # Исправление #2: правильные отступы внутри reply_video
+        with open(filename, 'rb') as f:
+            await update.message.reply_video(
+                video=f,
+                reply_parameters=reply_params,
+                supports_streaming=True,
+            )
+    except Exception as e:
+        logger.warning(f"reply_video не удался, пробую document: {e}")
+        with open(filename, 'rb') as f:
+            await update.message.reply_document(
+                document=f,
+                reply_parameters=reply_params,
+            )
+
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message:
         return
 
     chat_id = update.message.chat_id
-    message_counter[chat_id] = message_counter.get(chat_id, 0) + 1
+    message_counter[chat_id] += 1
     if message_counter[chat_id] >= 150:
         message_counter[chat_id] = 0
         await update.message.reply_text("а я считаю это желтуха")
-        # Исправление #1: убран return — если это ссылка, бот должен её обработать
 
-    # Дальше работаем только с текстом
-    if not update.message.text:
+    # Проверяем и text, и caption (ссылки в подписях к медиа)
+    text = (update.message.text or update.message.caption or "").strip()
+
+    if not text:
         return
 
     # Реакция на любое сообщение с шансом 7%
-    if random.randint(1, 100) <= 7:
+    if random.random() < 0.07:
         try:
             await update.message.set_reaction(
                 [ReactionTypeEmoji(emoji=random.choice(REACTIONS))]
@@ -82,62 +117,68 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.warning(f"Не удалось поставить реакцию: {e}")
 
-    # Исправление #5: reply_animation обёрнута в try/except
+    # Гифка целевому пользователю с шансом 5%
     if update.message.from_user and update.message.from_user.id == TARGET_USER_ID:
-        if random.randint(1, 100) <= 5 and len(GIF_FILES) > 0:
+        if random.random() < 0.05 and GIF_FILES:
             try:
                 await update.message.reply_animation(
                     animation=random.choice(GIF_FILES),
-                    reply_to_message_id=update.message.message_id
+                    reply_parameters=ReplyParameters(message_id=update.message.message_id),
                 )
             except Exception as e:
                 logger.warning(f"Не удалось отправить гифку: {e}")
 
-    text = update.message.text.strip()
     if not is_valid_url(text):
         return
 
     msg = await update.message.reply_text("⏳ Завозик...")
+    tmp_dir = tempfile.mkdtemp(prefix="yt_")
     filename = None
     try:
-        filename = await asyncio.to_thread(download_video, text)
+        download_semaphore = context.bot_data.get("download_semaphore")
+        async with download_semaphore:
+            filename = await asyncio.wait_for(
+                asyncio.to_thread(download_video, text, tmp_dir),
+                timeout=120,
+            )
+
         if filename and os.path.exists(filename):
-            try:
-                with open(filename, 'rb') as f:
-                    await update.message.reply_video(
-                        video=f,
-                        reply_to_message_id=update.message.message_id
-                    )
-            except Exception as e:
-                logger.warning(f"reply_video не удался, пробую document: {e}")
-                with open(filename, 'rb') as f:
-                    await update.message.reply_document(
-                        document=f,
-                        reply_to_message_id=update.message.message_id
-                    )
+            await send_video(filename, update)
+        else:
+            logger.error(f"Файл не найден после скачивания: {filename}")
+            await msg.edit_text("❌ Не удалось найти скачанный файл.")
+            return
+
+    except asyncio.TimeoutError:
+        logger.error(f"Таймаут при скачивании [{text}]")
+        await msg.edit_text("❌ Скачивание заняло слишком долго, попробуй позже.")
     except Exception as e:
         logger.error(f"Ошибка при скачивании или отправке [{text}]: {e}")
+        await msg.edit_text("❌ Не удалось скачать видео.")
     finally:
-        if filename and os.path.exists(filename):
-            os.remove(filename)
-            logger.info(f"Файл удалён: {filename}")
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        logger.info(f"Временная папка удалена: {tmp_dir}")
         try:
             await msg.delete()
         except Exception as e:
             logger.warning(f"Не удалось удалить сообщение-статус: {e}")
 
-def main():
-    # Исправление #8: чистим папку downloads от файлов прошлого запуска
-    shutil.rmtree("downloads", ignore_errors=True)
-    logger.info("Папка downloads очищена")
+
+def main() -> None:
+    logger.info("Бот запускается...")
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    # Исправление #3: семафор создаётся внутри main() после старта event loop
+    app.bot_data["download_semaphore"] = asyncio.Semaphore(3)
+
     app.add_handler(
         MessageHandler(filters.ALL & ~filters.COMMAND, handle_message)
     )
     print("✅ Бот запущен. Нажми Ctrl+C чтобы остановить.")
     logger.info("Бот запущен")
     app.run_polling(drop_pending_updates=True)
+
 
 if __name__ == "__main__":
     main()
