@@ -12,16 +12,12 @@ load_dotenv()
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
 # ID пользователя которому отвечаем гифкой
-TARGET_USER_ID = 5263879474 # наил
-TARGET_USER_ID_2 = 5002964279  # яна
+
+TARGET_USER_ID = 5002964279
 
 # file_id гифки
-GIF_FILES = [
-    "CgACAgIAAxkBAAFDzphpqBhs98iDDaVLT3lihB3ITR1guwACGZcAAgIQGUtNaOuySJMIDToE",
-    "CgACAgIAAxkBAAFD2ippqHrFSlvHfAABVctvgHyswu5uSVEAAniVAAKe3PlIJ3fVLt_zTa86BA",
-]
 
-GIF_FILES_2 = [
+GIF_FILES = [
     "CgACAgIAAxkBAAFD2mlpqH5Qrh_vFdkM_rbmUEJP3sJu6gAC3HYAAkciUEi9sy6F7yG9WToE",
 ]
 
@@ -49,8 +45,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
 
-    # Реакция на любое сообщение с шансом 9%
-    if random.randint(1, 100) <= 9:
+    # Реакция на любое сообщение с шансом 7%
+    if random.randint(1, 100) <= 7:
         try:
             await update.message.set_reaction(
                 [ReactionTypeEmoji(emoji=random.choice(REACTIONS))]
@@ -58,19 +54,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-    # Гифка для наиля 8%
+    # Гифка для яны 5%
     if update.message.from_user and update.message.from_user.id == TARGET_USER_ID:
-        if random.randint(1, 100) <= 8:
+        if random.randint(1, 100) <= 5:
             await update.message.reply_animation(
                 animation=random.choice(GIF_FILES),
-                reply_to_message_id=update.message.message_id
-            )
-
-    # Гифка для яны 6%
-    if update.message.from_user and update.message.from_user.id == TARGET_USER_ID_2:
-        if random.randint(1, 100) <= 6:
-            await update.message.reply_animation(
-                animation=random.choice(GIF_FILES_2),
                 reply_to_message_id=update.message.message_id
             )
 
