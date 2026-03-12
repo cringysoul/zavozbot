@@ -44,15 +44,19 @@ def download_video(url: str):
         return filename
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.text:
+    if not update.message:
         return
 
-    # Счётчик сообщений
+    # Счётчик сообщений (все типы)
     chat_id = update.message.chat_id
     message_counter[chat_id] = message_counter.get(chat_id, 0) + 1
     if message_counter[chat_id] >= 150:
         message_counter[chat_id] = 0
         await update.message.reply_text("а я считаю это желтуха")
+
+    # Дальше работаем только с текстом
+    if not update.message.text:
+        return
 
     # Реакция на любое сообщение с шансом 7%
     if random.randint(1, 100) <= 7:
@@ -105,7 +109,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
+        MessageHandler(filters.ALL & ~filters.COMMAND, handle_message)
     )
     print("✅ Бот запущен. Нажми Ctrl+C чтобы остановить.")
     app.run_polling(drop_pending_updates=True)
