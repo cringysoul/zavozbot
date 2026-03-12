@@ -23,6 +23,8 @@ GIF_FILES = [
 
 REACTIONS = ["🔥", "👀", "🤡", "💯"]
 
+message_counter = {}
+
 def is_valid_url(text):
     pattern = r'(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|instagram\.com/reel|twitter\.com|x\.com|youtube\.com|youtu\.be)'
     return bool(re.search(pattern, text))
@@ -46,11 +48,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Счётчик сообщений
-        chat_id = update.message.chat_id
-        message_counter[chat_id] = message_counter.get(chat_id, 0) + 1
-        if message_counter[chat_id] >= 150:
-            message_counter[chat_id] = 0
-            await update.message.reply_text("а я считаю это желтуха")
+    chat_id = update.message.chat_id
+    message_counter[chat_id] = message_counter.get(chat_id, 0) + 1
+    if message_counter[chat_id] >= 150:
+        message_counter[chat_id] = 0
+        await update.message.reply_text("а я считаю это желтуха")
 
     # Реакция на любое сообщение с шансом 7%
     if random.randint(1, 100) <= 7:
