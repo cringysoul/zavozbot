@@ -45,6 +45,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
 
+    # Счётчик сообщений
+        chat_id = update.message.chat_id
+        message_counter[chat_id] = message_counter.get(chat_id, 0) + 1
+        if message_counter[chat_id] >= 150:
+            message_counter[chat_id] = 0
+            await update.message.reply_text("а я считаю это желтуха")
+
     # Реакция на любое сообщение с шансом 7%
     if random.randint(1, 100) <= 7:
         try:
