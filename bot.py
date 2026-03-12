@@ -39,7 +39,7 @@ REACTIONS = ["🔥", "👀", "🤡", "💯"]
 message_counter: dict[int, int] = defaultdict(int)
 
 URL_PATTERN = re.compile(
-    r'https?://(www\.)?(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|instagram\.com/(reels?|p)|twitter\.com|x\.com|youtube\.com|youtu\.be)'
+    r'https?://(www\.)?(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|instagram\.com/(reels?|p)/|twitter\.com|x\.com|youtube\.com|youtu\.be)'
 )
 
 def is_valid_url(text: str) -> bool:
