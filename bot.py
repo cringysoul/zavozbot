@@ -28,11 +28,8 @@ if not BOT_TOKEN:
 # ID пользователя которому отвечаем гифкой
 TARGET_USER_ID = 5002964279
 
-# file_id гифок
-GIF_FILES = [
-    "CgACAgIAAxkBAAFD2mlpqH5Qrh_vFdkM_rbmUEJP3sJu6gAC3HYAAkciUEi9sy6F7yG9WToE",
-    # Добавь сюда больше file_id гифок
-]
+# file_id гифки
+GIF_FILE = "CgACAgIAAxkBAAFD2mlpqH5Qrh_vFdkM_rbmUEJP3sJu6gAC3HYAAkciUEi9sy6F7yG9WToE"
 
 REACTIONS = ["🔥", "👀", "🤡", "💯"]
 
@@ -98,7 +95,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     chat_id = update.message.chat_id
     message_counter[chat_id] += 1
-    if message_counter[chat_id] >= 10:
+    if message_counter[chat_id] >= 70:
         message_counter[chat_id] = 0
         await update.message.reply_text("а я считаю это желтуха")
 
@@ -119,10 +116,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     # Гифка целевому пользователю с шансом 5%
     if update.message.from_user and update.message.from_user.id == TARGET_USER_ID:
-        if random.random() < 0.05 and GIF_FILES:
+        if random.random() < 0.05:
             try:
                 await update.message.reply_animation(
-                    animation=random.choice(GIF_FILES),
+                    animation=GIF_FILE,
                     reply_parameters=ReplyParameters(message_id=update.message.message_id),
                 )
             except Exception as e:
