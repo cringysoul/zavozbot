@@ -47,7 +47,7 @@ def download_video(url: str, tmp_dir: str) -> str:
     """Скачивает видео в tmp_dir и возвращает реальный путь к файлу."""
     ydl_opts = {
         'outtmpl': os.path.join(tmp_dir, '%(id)s.%(ext)s'),
-        'format': 'best[ext=mp4][filesize<45M]/best[filesize<45M]/best',
+        'format': 'best[ext=mp4][filesize<100M]/best[filesize<100M]/best',
         'quiet': True,
         'merge_output_format': 'mp4',
         'socket_timeout': 30,
@@ -95,28 +95,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     chat_id = update.message.chat_id
     message_counter[chat_id] += 1
-    if message_counter[chat_id] >= 70:
+    if message_counter[chat_id] >= 85:
         message_counter[chat_id] = 0
         await update.message.reply_text("а я считаю это желтуха")
 
-    # Проверяем и text, и caption (ссылки в подписях к медиа)
-    text = (update.message.text or update.message.caption or "").strip()
-
-    if not text:
-        return
-
-    # Реакция на любое сообщение с шансом 7%
-    if random.random() < 0.07:
-        try:
-            await update.message.set_reaction(
-                [ReactionTypeEmoji(emoji=random.choice(REACTIONS))]
-            )
-        except Exception as e:
-            logger.warning(f"Не удалось поставить реакцию: {e}")
-
-    # Гифка целевому пользователю с шансом 5%
+    # Гифка целевому пользователю с шансом 3% — на любое сообщение, включая медиа
     if update.message.from_user and update.message.from_user.id == TARGET_USER_ID:
-        if random.random() < 0.05:
+        if random.random() < 0.03:
             try:
                 await update.message.reply_animation(
                     animation=GIF_FILE,
@@ -124,6 +109,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 )
             except Exception as e:
                 logger.warning(f"Не удалось отправить гифку: {e}")
+
+    # Проверяем и text, и caption (ссылки в подписях к медиа)
+    text = (update.message.text or update.message.caption or "").strip()
+
+    if not text:
+        return
+
+    # Реакция на любое сообщение с шансом 5%
+    if random.random() < 0.05:
+        try:
+            await update.message.set_reaction(
+                [ReactionTypeEmoji(emoji=random.choice(REACTIONS))]
+            )
+        except Exception as e:
+            logger.warning(f"Не удалось поставить реакцию: {e}")
 
     if not is_valid_url(text):
         return
