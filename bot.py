@@ -18,6 +18,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 load_dotenv()
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
@@ -53,8 +54,12 @@ def download_video(url: str, tmp_dir: str) -> str:
         'socket_timeout': 30,
         'noplaylist': True,
     }
-    # Исправление #1: правильные отступы внутри with
+     # Исправление #1: правильные отступы внутри with
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+        duration = info.get("duration", 0)
+        if duration > 600:
+            raise ValueError(f"Видео слишком длинное: {duration // 60} мин. Максимум 10 минут.")
         info = ydl.extract_info(url, download=True)
         filename = ydl.prepare_filename(info)
         if "requested_downloads" in info:
