@@ -104,9 +104,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         message_counter[chat_id] = 0
         await update.message.reply_text("а я считаю это желтуха")
 
-    # Гифка целевому пользователю с шансом 3% — на любое сообщение, включая медиа
+    # Гифка целевому пользователю с шансом 1% — на любое сообщение, включая медиа
     if update.message.from_user and update.message.from_user.id == TARGET_USER_ID:
-        if random.random() < 0.03:
+        if random.random() < 0.01:
             try:
                 await update.message.reply_animation(
                     animation=GIF_FILE,
@@ -121,8 +121,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not text:
         return
 
-    # Реакция на любое сообщение с шансом 5%
-    if random.random() < 0.05:
+    # Реакция на любое сообщение с шансом 4%
+    if random.random() < 0.04:
         try:
             await update.message.set_reaction(
                 [ReactionTypeEmoji(emoji=random.choice(REACTIONS))]
