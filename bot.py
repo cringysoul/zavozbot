@@ -44,46 +44,76 @@ def is_valid_url(text: str) -> bool:
     return bool(URL_PATTERN.search(text))
 
 
-def download_video(url: str, tmp_dir: str) -> str:
-    """Скачивает видео в tmp_dir и возвращает реальный путь к файлу."""
+def download_video(url: str, tmp_dir: str) -> tuple[str, dict]:
+    """Скачивает видео в tmp_dir и возвращает (путь к файлу, info dict)."""
     ydl_opts = {
         'outtmpl': os.path.join(tmp_dir, '%(id)s.%(ext)s'),
-        'format': 'best[ext=mp4][filesize<100M]/best[filesize<100M]/best',
+        # Ограничение 50 МБ — максимум для Telegram Bot API через reply_video
+        'format': 'best[ext=mp4][filesize<50M]/best[filesize<50M]/best',
         'quiet': True,
         'merge_output_format': 'mp4',
         'socket_timeout': 30,
         'noplaylist': True,
+        'postprocessors': [{
+            'key': 'FFmpegVideoConvertor',
+            'preferedformat': 'mp4',
+        }],
     }
-     # Исправление #1: правильные отступы внутри with
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        # Сначала только метаданные — проверяем длину
         info = ydl.extract_info(url, download=False)
         duration = info.get("duration", 0)
         if duration > 600:
             raise ValueError(f"Видео слишком длинное: {duration // 60} мин. Максимум 10 минут.")
+
+        # Скачиваем
         info = ydl.extract_info(url, download=True)
-        filename = ydl.prepare_filename(info)
-        if "requested_downloads" in info:
-            filename = info["requested_downloads"][0]["filepath"]
 
-    # Если merge_output_format поменял расширение — ищем .mp4
-    if not os.path.exists(filename):
-        mp4_path = os.path.splitext(filename)[0] + ".mp4"
-        if os.path.exists(mp4_path):
-            filename = mp4_path
+        # Надёжный способ получить финальный путь — из requested_downloads
+        filename = None
+        if "requested_downloads" in info and info["requested_downloads"]:
+            filename = info["requested_downloads"][0].get("filepath")
 
-    return filename
+        # Запасной вариант — prepare_filename
+        if not filename:
+            filename = ydl.prepare_filename(info)
+
+        # Если postprocessor поменял расширение — перебираем варианты
+        if not os.path.exists(filename):
+            base = os.path.splitext(filename)[0]
+            for ext in ('mp4', 'mkv', 'webm', 'mov'):
+                candidate = f"{base}.{ext}"
+                if os.path.exists(candidate):
+                    filename = candidate
+                    break
+
+        if not os.path.exists(filename):
+            raise FileNotFoundError(f"Файл не найден после скачивания: {filename}")
+
+        if os.path.getsize(filename) < 1024:
+            raise ValueError("Скачанный файл подозрительно маленький (< 1 КБ)")
+
+    return filename, info
 
 
-async def send_video(filename: str, update: Update) -> None:
-    """Единая функция отправки — сначала как видео, при ошибке как документ."""
+async def send_video(filename: str, update: Update, info: dict) -> None:
+    """Отправляет видео с метаданными. При ошибке — как документ."""
     reply_params = ReplyParameters(message_id=update.message.message_id)
+
+    # Передаём width/height/duration — без них Telegram может показать 0 кб
+    duration = int(info.get("duration") or 0)
+    width = int(info.get("width") or 0)
+    height = int(info.get("height") or 0)
+
     try:
-        # Исправление #2: правильные отступы внутри reply_video
         with open(filename, 'rb') as f:
             await update.message.reply_video(
                 video=f,
                 reply_parameters=reply_params,
                 supports_streaming=True,
+                duration=duration,
+                width=width,
+                height=height,
             )
     except Exception as e:
         logger.warning(f"reply_video не удался, пробую document: {e}")
@@ -100,7 +130,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     chat_id = update.message.chat_id
     message_counter[chat_id] += 1
-    if message_counter[chat_id] >= 85:
+    if message_counter[chat_id] >= 150:
         message_counter[chat_id] = 0
         await update.message.reply_text("а я считаю это желтуха")
 
@@ -139,13 +169,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     try:
         download_semaphore = context.bot_data.get("download_semaphore")
         async with download_semaphore:
-            filename = await asyncio.wait_for(
+            filename, info = await asyncio.wait_for(
                 asyncio.to_thread(download_video, text, tmp_dir),
                 timeout=120,
             )
 
         if filename and os.path.exists(filename):
-            await send_video(filename, update)
+            await send_video(filename, update, info)
         else:
             logger.error(f"Файл не найден после скачивания: {filename}")
             await msg.edit_text("❌ Не удалось найти скачанный файл.")
@@ -171,7 +201,6 @@ def main() -> None:
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # Исправление #3: семафор создаётся внутри main() после старта event loop
     app.bot_data["download_semaphore"] = asyncio.Semaphore(3)
 
     app.add_handler(
